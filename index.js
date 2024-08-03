@@ -6,7 +6,23 @@ require("dotenv").config();
 
 const app = express();
 app.use(bodyParser.json());
-app.use(cors());
+
+const allowedOrigins = [process.env.REACT_APP_FRONTEND_URL];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin, e.g. mobile apps or curl requests
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg =
+          "The CORS policy for this site does not allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+  })
+);
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
