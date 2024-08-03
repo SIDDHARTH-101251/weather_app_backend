@@ -1,12 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-
 require("dotenv").config();
 
 const app = express();
 app.use(bodyParser.json());
 
+// CORS configuration
 const allowedOrigins = [process.env.REACT_APP_FRONTEND_URL];
 
 app.use(
@@ -24,17 +24,26 @@ app.use(
   })
 );
 
+// Google Generative AI configuration
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Access your API key as an environment variable
-const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GOOGLE_GEMINI_API);
+// Ensure your API key is set in the environment variables
+const apiKey = process.env.REACT_APP_GOOGLE_GEMINI_API;
+if (!apiKey) {
+  console.error("API key for Google Generative AI is missing.");
+  process.exit(1); // Exit if API key is not provided
+}
 
+const genAI = new GoogleGenerativeAI(apiKey);
+
+// Define the AI model and API endpoint
 async function run() {
-  // The Gemini 1.5 models are versatile and work with both text-only and multimodal prompts
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   app.post("/chat", async (req, res) => {
     const { prompt } = req.body;
+    console.log("Received prompt:", prompt);
+
     if (!prompt) {
       return res.status(400).send("Prompt is required");
     }
@@ -42,15 +51,16 @@ async function run() {
     try {
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
+      const text = await response.text(); // Ensure response.text() is awaited
+      console.log("Generated text:", text);
       res.send(text);
     } catch (error) {
-      console.error("Google AI API Error!", error);
+      console.error("Google AI API Error:", error.message);
       res.status(500).send("Failed to process request");
     }
   });
 
-  const port = 8000;
+  const port = process.env.PORT || 8000; // Use environment port or default to 8000
   app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
   });
